@@ -1,0 +1,124 @@
+Rules for Tree 1:
+|--- count <= 0.10
+|   |--- serror_rate <= 0.82
+|   |   |--- num_compromised <= 0.00
+|   |   |   |--- value: [-3.85]
+|   |   |--- num_compromised >  0.00
+|   |   |   |--- value: [-0.29]
+|   |--- serror_rate >  0.82
+|   |   |--- flag <= 0.55
+|   |   |   |--- value: [0.99]
+|   |   |--- flag >  0.55
+|   |   |   |--- value: [-3.86]
+|--- count >  0.10
+|   |--- diff_srv_rate <= 0.12
+|   |   |--- protocol_type <= 0.75
+|   |   |   |--- value: [1.01]
+|   |   |--- protocol_type >  0.75
+|   |   |   |--- value: [-3.64]
+|   |--- diff_srv_rate >  0.12
+|   |   |--- value: [-3.86]
+
+--------------------------------------------------
+Rules for Tree 2:
+|--- count <= 0.10
+|   |--- serror_rate <= 0.82
+|   |   |--- dst_host_srv_diff_host_rate <= 0.50
+|   |   |   |--- value: [-2.21]
+|   |   |--- dst_host_srv_diff_host_rate >  0.50
+|   |   |   |--- value: [-2.34]
+|   |--- serror_rate >  0.82
+|   |   |--- flag <= 0.55
+|   |   |   |--- value: [0.96]
+|   |   |--- flag >  0.55
+|   |   |   |--- value: [-2.38]
+|--- count >  0.10
+|   |--- protocol_type <= 0.75
+|   |   |--- logged_in <= 0.50
+|   |   |   |--- value: [0.97]
+|   |   |--- logged_in >  0.50
+|   |   |   |--- value: [-3.11]
+|   |--- protocol_type >  0.75
+|   |   |--- wrong_fragment <= 0.17
+|   |   |   |--- value: [-2.26]
+|   |   |--- wrong_fragment >  0.17
+|   |   |   |--- value: [1.28]
+
+--------------------------------------------------
+Rules for Tree 3:
+|--- count <= 0.10
+|   |--- serror_rate <= 0.82
+|   |   |--- dst_host_srv_diff_host_rate <= 0.50
+|   |   |   |--- value: [-1.71]
+|   |   |--- dst_host_srv_diff_host_rate >  0.50
+|   |   |   |--- value: [-1.77]
+|   |--- serror_rate >  0.82
+|   |   |--- flag <= 0.55
+|   |   |   |--- value: [0.93]
+|   |   |--- flag >  0.55
+|   |   |   |--- value: [-1.92]
+|--- count >  0.10
+|   |--- protocol_type <= 0.75
+|   |   |--- diff_srv_rate <= 0.24
+|   |   |   |--- value: [0.94]
+|   |   |--- diff_srv_rate >  0.24
+|   |   |   |--- value: [-2.47]
+|   |--- protocol_type >  0.75
+|   |   |--- wrong_fragment <= 0.17
+|   |   |   |--- value: [-1.75]
+|   |   |--- wrong_fragment >  0.17
+|   |   |   |--- value: [1.25]
+
+--------------------------------------------------
+Rules for Tree 4:
+|--- count <= 0.11
+|   |--- serror_rate <= 0.82
+|   |   |--- dst_host_srv_diff_host_rate <= 0.50
+|   |   |   |--- value: [-1.44]
+|   |   |--- dst_host_srv_diff_host_rate >  0.50
+|   |   |   |--- value: [-1.38]
+|   |--- serror_rate >  0.82
+|   |   |--- flag <= 0.55
+|   |   |   |--- value: [0.90]
+|   |   |--- flag >  0.55
+|   |   |   |--- value: [-1.70]
+|--- count >  0.11
+|   |--- protocol_type <= 0.75
+|   |   |--- diff_srv_rate <= 0.24
+|   |   |   |--- value: [0.92]
+|   |   |--- diff_srv_rate >  0.24
+|   |   |   |--- value: [-2.15]
+|   |--- protocol_type >  0.75
+|   |   |--- wrong_fragment <= 0.17
+|   |   |   |--- value: [-1.48]
+|   |   |--- wrong_fragment >  0.17
+|   |   |   |--- value: [1.25]
+
+--------------------------------------------------
+Rules for Tree 5:
+|--- count <= 0.11
+|   |--- serror_rate <= 0.82
+|   |   |--- num_compromised <= 0.00
+|   |   |   |--- value: [-1.29]
+|   |   |--- num_compromised >  0.00
+|   |   |   |--- value: [1.26]
+|   |--- serror_rate >  0.82
+|   |   |--- flag <= 0.55
+|   |   |   |--- value: [0.88]
+|   |   |--- flag >  0.55
+|   |   |   |--- value: [-1.57]
+|--- count >  0.11
+|   |--- protocol_type <= 0.75
+|   |   |--- diff_srv_rate <= 0.24
+|   |   |   |--- value: [0.90]
+|   |   |--- diff_srv_rate >  0.24
+|   |   |   |--- value: [-1.79]
+|   |--- protocol_type >  0.75
+|   |   |--- wrong_fragment <= 0.17
+|   |   |   |--- value: [-1.31]
+|   |   |--- wrong_fragment >  0.17
+|   |   |   |--- value: [1.27]
+
+--------------------------------------------------
+
+Total number of rules: 122
