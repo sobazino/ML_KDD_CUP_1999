@@ -4,13 +4,12 @@
 
 <p align="center">
 <img src="https://img.shields.io/github/languages/count/sobazino/ML_KDD_CUP_1999">
+<img src="https://img.shields.io/github/license/sobazino/ML_KDD_CUP_1999">
 <img src="https://img.shields.io/badge/Roadmap-2024-yellowgreen.svg">
 <img src="https://img.shields.io/badge/Author-Mehran%20Nosrati-blue.svg">
 </p>
 
 </br>
-
-This database contains a standard set of data to be audited, which includes a wide variety of intrusions simulated in a military network environment.
 
 ### Core:
 
@@ -18,11 +17,9 @@ This database contains a standard set of data to be audited, which includes a wi
 
 ### Dataset:
 
-KDD Cup 1999
+KDD Cup 1999: This database contains a standard set of data to be audited, which includes a wide variety of intrusions simulated in a military network environment.
 
-```
-https://kdd.ics.uci.edu/databases/kddcup99/kddcup99.html
-```
+The dataset for this project is the [KDD Cup 1999 Dataset](https://kdd.ics.uci.edu/databases/kddcup99/kddcup99.html).
 
 ### Metrics:
 
