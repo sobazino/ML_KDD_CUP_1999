@@ -10,14 +10,17 @@
 
 </br>
 
+This database contains a standard set of data to be audited, which includes a wide variety of intrusions simulated in a military network environment.
+
 ### Core:
 
-[main.py](https://github.com/sobazino/ML_KDD_CUP_1999)
+[main.py](https://github.com/sobazino/ML_KDD_CUP_1999/blob/main/Core/main.py)
 
 ### Dataset:
 
-```
 KDD Cup 1999
+
+```
 https://kdd.ics.uci.edu/databases/kddcup99/kddcup99.html
 ```
 
