@@ -14,7 +14,7 @@ from sklearn.metrics import accuracy_score, recall_score, precision_score, f1_sc
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, GradientBoostingClassifier, ExtraTreesClassifier
 
 current_dir = os.path.dirname(__file__)
-type = os.path.join(current_dir, 'training_attack_types')
+type = os.path.join(current_dir, 'training_attack_types.txt')
 name = os.path.join(current_dir, 'kddcup.names')
 file = os.path.join(current_dir, 'kddcup.data.gz')
 
