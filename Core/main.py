@@ -6,16 +6,18 @@ import pandas as pd
 import seaborn as sns
 import lightgbm as lgb
 import matplotlib.pyplot as plt
+from sklearn.svm import LinearSVC
+from sklearn.naive_bayes import GaussianNB
+from sklearn.naive_bayes import BernoulliNB
+from sklearn.naive_bayes import MultinomialNB
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.preprocessing import LabelEncoder
+from sklearn.neighbors import KNeighborsClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.tree import export_text, plot_tree, DecisionTreeClassifier
 from sklearn.metrics import accuracy_score, recall_score, precision_score, f1_score
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, GradientBoostingClassifier, ExtraTreesClassifier
 
-from sklearn.naive_bayes import GaussianNB
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.svm import LinearSVC
 
 current_dir = os.path.dirname(__file__)
 type = os.path.join(current_dir, 'training_attack_types.txt')
@@ -28,6 +30,7 @@ drop = [
     'dst_host_rerror_rate', 'dst_host_srv_rerror_rate', 
     'dst_host_same_srv_rate'
 ]
+
 
 class PD:
     def __init__(self, drop, path, type, name, file):
@@ -154,6 +157,7 @@ class PD:
     def start(self):
         return self.ppd()
 
+
 class ML:
     def __init__(self, path, model, test_size=0.3, random_state=42, pathrules="rules.txt", pathtree="tree.svg"):
         self.path = path
@@ -258,6 +262,7 @@ class ML:
         print(f'Recall: {R["recall"]}')
         print(f'F1 Score: {R["f1"]}')
 
+
 def main():
     PData = PD(drop, "temp/", type, name, file)
     df = PData.start()
@@ -329,12 +334,37 @@ def main():
     
     Name = "Naive Bayes"
     print(f'N: {Name}')
-    NB = GaussianNB(var_smoothing=1e-9)
-    detector = ML("temp/result/" ,NB)
-    detector.load(df)
-    detector.train()
-    R = detector.evaluate()
-    detector.result(R)
+    smoothing_values = [1e-12, 1e-10, 1e-9, 1e-8, 1e-7]
+    for var_smoothing in smoothing_values:
+        print(f"T GaussianNB with var_smoothing={var_smoothing}")
+        NB = GaussianNB(var_smoothing=var_smoothing)
+        detector = ML("temp/result/", NB)
+        detector.load(df)
+        detector.train()
+        R = detector.evaluate()
+        detector.result(R)
+        
+    alpha_values = [0.1, 0.5, 1.0]
+    for alpha in alpha_values:
+        print(f'T MultinomialNB with alpha={alpha}')
+        NB = MultinomialNB(alpha=alpha, fit_prior=True)
+        detector = ML("temp/result/", NB)
+        detector.load(df)
+        detector.train()
+        R = detector.evaluate()
+        detector.result(R)
+        
+    alpha_values = [0.1, 0.5, 1.0]
+    binarize_values = [0.0, 0.5, 1.0]
+    for alpha in alpha_values:
+        for binarize in binarize_values:
+            print(f'T BernoulliNB with alpha={alpha} and binarize={binarize}')
+            NB = BernoulliNB(alpha=alpha, binarize=binarize, fit_prior=True)
+            detector = ML("temp/result/", NB)
+            detector.load(df)
+            detector.train()
+            R = detector.evaluate()
+            detector.result(R)
     
     Name = "K-Nearest Neighbors"
     print(f'N: {Name}')
@@ -347,12 +377,17 @@ def main():
 
     Name = "Support Vector Machine"
     print(f'N: {Name}')
-    SVM = LinearSVC(random_state=7)
-    detector = ML("temp/result/" ,SVM)
-    detector.load(df)
-    detector.train()
-    R = detector.evaluate()
-    detector.result(R)
+    C_values = [0.01, 0.1, 1, 10]
+    loss_types = ['hinge', 'squared_hinge']
+    for C in C_values:
+        for loss in loss_types:
+            print(f"T LinearSVC with C={C} and loss={loss}")
+            SVM = LinearSVC(C=C, loss=loss, random_state=7)
+            detector = ML("temp/result/", SVM)
+            detector.load(df)
+            detector.train()
+            R = detector.evaluate()
+            detector.result(R)
     
 if __name__ == '__main__':
     main()
