@@ -13,6 +13,10 @@ from sklearn.tree import export_text, plot_tree, DecisionTreeClassifier
 from sklearn.metrics import accuracy_score, recall_score, precision_score, f1_score
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, GradientBoostingClassifier, ExtraTreesClassifier
 
+from sklearn.naive_bayes import GaussianNB
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.svm import LinearSVC
+
 current_dir = os.path.dirname(__file__)
 type = os.path.join(current_dir, 'training_attack_types.txt')
 name = os.path.join(current_dir, 'kddcup.names')
@@ -322,6 +326,33 @@ def main():
     detector.result(R)
     detector.rules()
     detector.Tree()
+    
+    Name = "Naive Bayes"
+    print(f'N: {Name}')
+    NB = GaussianNB(var_smoothing=1e-9)
+    detector = ML("temp/result/" ,NB)
+    detector.load(df)
+    detector.train()
+    R = detector.evaluate()
+    detector.result(R)
+    
+    Name = "K-Nearest Neighbors"
+    print(f'N: {Name}')
+    KNN = KNeighborsClassifier(n_neighbors=5, algorithm='ball_tree', leaf_size=500)
+    detector = ML("temp/result/" ,KNN)
+    detector.load(df)
+    detector.train()
+    R = detector.evaluate()
+    detector.result(R)
+
+    Name = "Support Vector Machine"
+    print(f'N: {Name}')
+    SVM = LinearSVC(random_state=7)
+    detector = ML("temp/result/" ,SVM)
+    detector.load(df)
+    detector.train()
+    R = detector.evaluate()
+    detector.result(R)
     
 if __name__ == '__main__':
     main()
