@@ -5,6 +5,7 @@ import time
 import pandas as pd
 import seaborn as sns
 import lightgbm as lgb
+from datetime import datetime
 import matplotlib.pyplot as plt
 from sklearn.svm import LinearSVC
 from sklearn.naive_bayes import GaussianNB
@@ -13,16 +14,18 @@ from sklearn.naive_bayes import MultinomialNB
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.preprocessing import LabelEncoder
 from sklearn.neighbors import KNeighborsClassifier
+from sklearn.multiclass import OneVsRestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.tree import export_text, plot_tree, DecisionTreeClassifier
-from sklearn.metrics import accuracy_score, recall_score, precision_score, f1_score
-from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, GradientBoostingClassifier, ExtraTreesClassifier
+from sklearn.metrics import accuracy_score, recall_score, precision_score, f1_score, classification_report
+from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, GradientBoostingClassifier, ExtraTreesClassifier, VotingClassifier, StackingClassifier
 
 
 current_dir = os.path.dirname(__file__)
 type = os.path.join(current_dir, 'training_attack_types.txt')
 name = os.path.join(current_dir, 'kddcup.names')
-file = os.path.join(current_dir, 'kddcup.data.gz')
+# file = os.path.join(current_dir, 'kddcup.data.gz')
+file = os.path.join(current_dir, 'kddcup.data_10_percent.gz')
 
 drop = [
     'num_root', 'srv_serror_rate', 'srv_rerror_rate', 
@@ -40,6 +43,7 @@ class PD:
         self.name = name
         self.file = file
     
+    
     def phg(self, df, features):
         plt.figure(figsize=(15, 6))
         df[features].hist(bins=20, color='#461c48', figsize=(15, 6))
@@ -51,6 +55,7 @@ class PD:
         plt.tight_layout()
         plt.savefig(f'{self.path}ALL_distribution.png', format='png', dpi=300)
         plt.close()
+    
     
     def psh(self, feature, df):
         protocol_counts = df[feature].value_counts()
@@ -65,6 +70,7 @@ class PD:
         plt.tight_layout()
         plt.savefig(f'{self.path}{feature}_distribution.png', format='png', dpi=300)
         plt.close()
+    
     
     def chm(self, df):
         corr = df.loc[:, df.dtypes == 'float64'].corr()
@@ -83,6 +89,7 @@ class PD:
         plt.savefig(f'{self.path}hm_distribution.png', format='png', dpi=300)
         plt.close()
     
+    
     def numeric_features(self, df, filename):
         with open(self.path+filename, "w") as file:
             file.write("Numeric Features:\n")
@@ -94,6 +101,7 @@ class PD:
                 file.write(f"Median: {df[column].median()}\n")
                 file.write("-" * 30 + "\n")
 
+
     def categorical_features(self, df, filename):
         with open(self.path+filename, "w") as file:
             file.write("Categorical Features:\n")
@@ -103,6 +111,7 @@ class PD:
                 file.write("Value Counts for Each Unique Value:\n")
                 file.write(df[column].value_counts().to_string())
                 file.write("\n" + "-" * 30 + "\n")
+            
                 
     def col(self):
         attack_types = {'normal': 'normal'}
@@ -127,15 +136,18 @@ class PD:
         
         return attack_types, col_names
     
-    def red(self):
+    
+    def red(self, EB):
         A,C = self.col()
         df = pd.read_csv(self.file,names=C)
         df['Label'] = df.Attack.apply(lambda r:A[r[:-1]])
-        df.drop('Attack',axis = 1,inplace = True)
+        if EB:
+            df.drop('Attack',axis = 1,inplace = True)
         return df
 
-    def ppd(self):
-        df = self.red()
+
+    def ppd(self, EB):
+        df = self.red(EB)
         self.psh('protocol_type',df)
         self.psh('service',df)
         self.psh('flag',df)
@@ -154,8 +166,9 @@ class PD:
         df.drop(columns=self.drop, axis=1, inplace=True)
         return df
     
-    def start(self):
-        return self.ppd()
+    
+    def start(self, EB):
+        return self.ppd(EB)
 
 
 class ML:
@@ -168,14 +181,17 @@ class ML:
         self.random_state = random_state
         self.scaler = MinMaxScaler()
 
+
     def log_operation(self, operation_name):
         with open(self.path + "operations_log.txt", "a") as f:
             f.write(f"{operation_name} executed at {time.strftime('%Y-%m-%d %H:%M:%S')}\n")
+         
             
     def model_details(self):
         print("Model Parameters:")
         for param, value in self.model.get_params().items():
             print(f"{param}: {value}")
+         
          
     def load(self, df, label_col='Label'):
         X = df.drop(label_col, axis=1)
@@ -185,6 +201,7 @@ class ML:
         self.X_train, self.X_test, self.Y_train, self.Y_test = train_test_split(X, Y, test_size=self.test_size, random_state=self.random_state)
         self.log_operation("Load")
 
+
     def train(self):
         self.model_details()
         start_time = time.time()
@@ -192,6 +209,7 @@ class ML:
         end_time = time.time()
         print(f'Time T: {end_time - start_time} seconds')
         self.log_operation("Train")
+
 
     def evaluate(self):
         start_time = time.time()
@@ -211,6 +229,7 @@ class ML:
         self.log_operation("Evaluate")
         return results
         
+        
     def rules(self):
         all_rules = ""
         if hasattr(self.model, 'estimators_'):
@@ -228,6 +247,7 @@ class ML:
             file.write("\nTotal number of rules: " + str(all_rules.count('\n')))
         print(f"Rules have been saved to {self.pathrules}")
         self.log_operation("Rules")
+
 
     def Tree(self):
         if hasattr(self.model, 'estimators_'):
@@ -247,6 +267,7 @@ class ML:
             print(f"Tree has been saved to {self.pathtree}")
             self.log_operation("Tree")
     
+    
     def lgb(self, M):
         fig, ax = plt.subplots(nrows=2, figsize=(50,10), sharex=True)
         lgb.plot_tree(M, tree_index=0,dpi=10, ax=ax[0])
@@ -256,6 +277,7 @@ class ML:
         print(f"lgb has been saved to {self.pathtree}")
         self.log_operation("Lgb")
         
+        
     def result(self, R):
         print(f'Accuracy: {R["accuracy"]}')
         print(f'Precision: {R["precision"]}')
@@ -263,9 +285,35 @@ class ML:
         print(f'F1 Score: {R["f1"]}')
 
 
-def main():
+def pltreport(report, t):
+    report_df = pd.DataFrame(report).transpose()
+    plt.figure(figsize=(12, 8))
+    sns.heatmap(report_df.iloc[:-1, :-1], annot=True, cmap="YlGnBu", fmt='.3f', cbar=True, 
+                linewidths=0.5, linecolor='black', annot_kws={'size': 12, 'weight': 'bold'}, 
+                cbar_kws={'shrink': 0.8}, vmin=0, vmax=1)
+    plt.title(t, fontsize=16, weight='bold')
+    plt.xlabel("Metrics", fontsize=14)
+    plt.ylabel("Classes", fontsize=14)
+    plt.xticks(rotation=45, ha='right', fontsize=12)
+    plt.yticks(rotation=0, fontsize=12)
+    plt.tight_layout()
+    time = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
+    plt.savefig(f'{time}Res.png', format='png')
+    plt.close()
+
+
+def set(train, test, C):
+    X_train = train.drop(C, axis=1)
+    Y_train = train[C]
+    X_test = test.drop(C, axis=1)
+    Y_test = test[C]
+    return X_train, Y_train, X_test, Y_test
+
+
+def OneModel():
     PData = PD(drop, "temp/", type, name, file)
-    df = PData.start()
+    df = PData.start(True)
+
 
     Name = "Decision Tree Classifier"
     print(f'N: {Name}')
@@ -278,6 +326,7 @@ def main():
     detector.rules()
     detector.Tree()
     
+    
     Name = "Random Forest Classifier"
     print(f'N: {Name}')
     RF = RandomForestClassifier(n_estimators=100, max_depth = 17, random_state=7)
@@ -288,6 +337,7 @@ def main():
     detector.result(R)
     detector.rules()
     detector.Tree()
+    
     
     Name = "Gradient Boosting Classifier"
     print(f'N: {Name}')
@@ -300,6 +350,7 @@ def main():
     detector.rules()
     detector.Tree()
     
+    
     Name = "ExtraTrees Classifier"
     print(f'N: {Name}')
     ET = ExtraTreesClassifier(n_estimators=20, random_state=7)
@@ -311,6 +362,7 @@ def main():
     detector.rules()
     detector.Tree()
     
+    
     Name = "LGBM Classifier"
     print(f'N: {Name}')
     LGBM = lgb.LGBMClassifier(n_estimators=50, learning_rate=0.1, random_state=7)
@@ -320,6 +372,7 @@ def main():
     R = detector.evaluate()
     detector.result(R)
     detector.lgb(LGBM)
+    
     
     Name = "AdaBoost Classifier"
     print(f'N: {Name}')
@@ -331,6 +384,7 @@ def main():
     detector.result(R)
     detector.rules()
     detector.Tree()
+    
     
     Name = "Naive Bayes"
     print(f'N: {Name}')
@@ -344,6 +398,7 @@ def main():
         R = detector.evaluate()
         detector.result(R)
         
+        
     alpha_values = [0.1, 0.5, 1.0]
     for alpha in alpha_values:
         print(f'T MultinomialNB with alpha={alpha}')
@@ -353,6 +408,7 @@ def main():
         detector.train()
         R = detector.evaluate()
         detector.result(R)
+        
         
     alpha_values = [0.1, 0.5, 1.0]
     binarize_values = [0.0, 0.5, 1.0]
@@ -366,6 +422,7 @@ def main():
             R = detector.evaluate()
             detector.result(R)
     
+    
     Name = "K-Nearest Neighbors"
     print(f'N: {Name}')
     KNN = KNeighborsClassifier(n_neighbors=5, algorithm='ball_tree', leaf_size=500)
@@ -374,6 +431,7 @@ def main():
     detector.train()
     R = detector.evaluate()
     detector.result(R)
+
 
     Name = "Support Vector Machine"
     print(f'N: {Name}')
@@ -389,5 +447,115 @@ def main():
             R = detector.evaluate()
             detector.result(R)
     
+
+def EnsembleModel():
+    PData = PD(drop, "temp/", type, name, file)
+    df = PData.start(False)
+
+
+    Tdf = df.copy()
+    Tdf.drop('Attack',axis = 1,inplace = True)
+    Tdf.drop('Label',axis = 1,inplace = True)
+    Edf = df.copy()
+    Edf = Edf[Edf['Attack'] != 'normal.']
+    DoS_df = Edf[Edf['Label'] == 'dos'].copy()
+    R2L_df = Edf[Edf['Label'] == 'r2l'].copy()
+    U2R_df = Edf[Edf['Label'] == 'u2r'].copy()
+    Probe_df = Edf[Edf['Label'] == 'probe'].copy()
+    DoS_df.drop('Label',axis = 1,inplace = True)
+    R2L_df.drop('Label',axis = 1,inplace = True)
+    U2R_df.drop('Label',axis = 1,inplace = True)
+    Probe_df.drop('Label',axis = 1,inplace = True)
+    Cdf = df.copy()
+    Cdf.drop('Attack',axis = 1,inplace = True)
+    Sdf = Cdf.copy()
+    Sdf.loc[df['Label'] != 'normal', 'Label'] = 'attack'
+    Cdf = Cdf[Cdf['Label'] != 'normal']
+    le = LabelEncoder()
+    Sdf['Label'] = le.fit_transform(Sdf['Label'])
+    Cdf['Label'] = le.fit_transform(Cdf['Label'])
+    DoS_df['Attack'] = le.fit_transform(DoS_df['Attack'])
+    R2L_df['Attack'] = le.fit_transform(R2L_df['Attack'])
+    U2R_df['Attack'] = le.fit_transform(U2R_df['Attack'])
+    Probe_df['Attack'] = le.fit_transform(Probe_df['Attack'])
+
+
+    DT = DecisionTreeClassifier(criterion="entropy", max_depth = 17, random_state=7)
+    ET = ExtraTreesClassifier(n_estimators=20, random_state=7)
+    RF = RandomForestClassifier(n_estimators=100, max_depth = 17, random_state=7)
+    train_Sdf, test_Sdf = train_test_split(Sdf, test_size=0.3, random_state=42)
+    X_trainSdf, Y_trainSdf, X_testSdf, Y_testSdf = set(train_Sdf, test_Sdf, 'Label')
+    SEM = VotingClassifier(estimators=[('DT', DT), ('ET', ET), ('RF', RF)], voting='hard')
+    SEM.fit(X_trainSdf, Y_trainSdf)
+    y_pred = SEM.predict(X_testSdf)
+    pltreport(classification_report(Y_testSdf, y_pred, zero_division=0, output_dict=True), "Attack / Normal")
+    print(classification_report(Y_testSdf, y_pred, zero_division=0))
+
+
+    DT = OneVsRestClassifier(DecisionTreeClassifier(criterion="entropy", max_depth = 17, random_state=7))
+    ET = OneVsRestClassifier(ExtraTreesClassifier(n_estimators=20, random_state=7))
+    RF = OneVsRestClassifier(RandomForestClassifier(n_estimators=100, max_depth = 17, random_state=7))
+    train_Cdf, test_Cdf = train_test_split(Cdf, test_size=0.3, random_state=42)
+    X_trainCdf, Y_trainCdf, X_testCdf, Y_testCdf = set(train_Cdf, test_Cdf, 'Label')
+    CEM = VotingClassifier(estimators=[('DT', DT), ('ET', ET), ('RF', RF)], voting='hard')
+    CEM.fit(X_trainCdf, Y_trainCdf)
+    y_pred = CEM.predict(X_testCdf)
+    pltreport(classification_report(Y_testCdf, y_pred, zero_division=0, output_dict=True), "Dos / Probe / U2r / R2l")
+    print(classification_report(Y_testCdf, y_pred, zero_division=0))
+
+
+    DT = OneVsRestClassifier(DecisionTreeClassifier(criterion="entropy", max_depth = 17, random_state=7))
+    ET = OneVsRestClassifier(ExtraTreesClassifier(n_estimators=20, random_state=7))
+    RF = OneVsRestClassifier(RandomForestClassifier(n_estimators=100, max_depth = 17, random_state=7))
+    train_DoS_df, test_DoS_df = train_test_split(DoS_df, test_size=0.3, random_state=42)
+    X_trainDoS_df, Y_trainDoS_df, X_testDoS_df, Y_testDoS_df = set(train_DoS_df, test_DoS_df, 'Attack')
+    DEM = VotingClassifier(estimators=[('DT', DT), ('ET', ET), ('RF', RF)], voting='hard')
+    DEM.fit(X_trainDoS_df, Y_trainDoS_df)
+    y_pred = DEM.predict(X_testDoS_df)
+    pltreport(classification_report(Y_testDoS_df, y_pred, zero_division=0, output_dict=True), "Dos")
+    print(classification_report(Y_testDoS_df, y_pred, zero_division=0))
+
+
+    DT = OneVsRestClassifier(DecisionTreeClassifier(criterion="entropy", max_depth = 17, random_state=7))
+    ET = OneVsRestClassifier(ExtraTreesClassifier(n_estimators=20, random_state=7))
+    RF = OneVsRestClassifier(RandomForestClassifier(n_estimators=100, max_depth = 17, random_state=7))
+    train_R2L_df, test_R2L_df = train_test_split(R2L_df, test_size=0.3, random_state=42)
+    X_trainR2L_df, Y_trainR2L_df, X_testR2L_df, Y_testR2L_df = set(train_R2L_df, test_R2L_df, 'Attack')
+    REM = VotingClassifier(estimators=[('DT', DT), ('ET', ET), ('RF', RF)], voting='hard')
+    REM.fit(X_trainR2L_df, Y_trainR2L_df)
+    y_pred = REM.predict(X_testR2L_df)
+    pltreport(classification_report(Y_testR2L_df, y_pred, zero_division=0, output_dict=True), "R2l")
+    print(classification_report(Y_testR2L_df, y_pred, zero_division=0))
+
+
+    DT = DecisionTreeClassifier(criterion="entropy", max_depth = 17, random_state=7)
+    ET = ExtraTreesClassifier(n_estimators=20, random_state=7)
+    RF = RandomForestClassifier(n_estimators=100, max_depth = 17, random_state=7)
+    train_U2R_df, test_U2R_df = train_test_split(U2R_df, test_size=0.3, random_state=42)
+    test_U2R_df = pd.concat([test_U2R_df, pd.concat([test_U2R_df[test_U2R_df['Attack'] == 1]] * 1, ignore_index=True)], ignore_index=True)
+    X_trainU2R_df, Y_trainU2R_df, X_testU2R_df, Y_testU2R_df = set(train_U2R_df, test_U2R_df, 'Attack')
+    UEM = VotingClassifier(estimators=[('DT', DT), ('ET', ET), ('RF', RF)], voting='hard')
+    UEM.fit(X_trainU2R_df, Y_trainU2R_df)
+    y_pred = UEM.predict(X_testU2R_df)
+    pltreport(classification_report(Y_testU2R_df, y_pred, zero_division=0, output_dict=True), "U2r")
+    print(classification_report(Y_testU2R_df, y_pred, zero_division=0))
+
+
+    estimators = [
+        ('DT', DecisionTreeClassifier(criterion="entropy", max_depth = 17, random_state=7)),
+        ('ET', ExtraTreesClassifier(n_estimators=20, random_state=7)),
+        ('RF', RandomForestClassifier(n_estimators=100, max_depth = 17, random_state=7)),
+    ]
+    final_estimator = RandomForestClassifier(n_estimators=100, random_state=7)
+    PEM = StackingClassifier(estimators=estimators, final_estimator=final_estimator)
+    train_Probe_df, test_Probe_df = train_test_split(Probe_df, test_size=0.3, random_state=42)
+    X_trainProbe_df, Y_trainProbe_df, X_testProbe_df, Y_testProbe_df = set(train_Probe_df, test_Probe_df, 'Attack')
+    PEM.fit(X_trainProbe_df, Y_trainProbe_df)
+    y_pred = PEM.predict(X_testProbe_df)
+    pltreport(classification_report(Y_testProbe_df, y_pred, zero_division=0, output_dict=True), "Probe")
+    print(classification_report(Y_testProbe_df, y_pred, zero_division=0))
+    
+    
 if __name__ == '__main__':
-    main()
+    OneModel()
+    EnsembleModel()
