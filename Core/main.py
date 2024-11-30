@@ -285,6 +285,26 @@ class ML:
         print(f'F1 Score: {R["f1"]}')
 
 
+class EnsembleMethod:
+    def __init__(self, base_models, method, final_model=None):
+        self.base_models = base_models
+        self.method = method
+        self.final_model = final_model
+        self.ensemble_model = None
+
+    def build_model(self):
+        if self.method == 'voting':
+            self.ensemble_model = VotingClassifier(estimators=self.base_models, voting='hard')
+        elif self.method == 'stacking' and self.final_model is not None:
+            self.ensemble_model = StackingClassifier(estimators=self.base_models, final_estimator=self.final_model)
+
+    def fit(self, X, y):
+        self.ensemble_model.fit(X, y)
+
+    def predict(self, X):
+        return self.ensemble_model.predict(X)
+    
+    
 def pltreport(report, t):
     report_df = pd.DataFrame(report).transpose()
     plt.figure(figsize=(12, 8))
@@ -480,78 +500,101 @@ def EnsembleModel():
     Probe_df['Attack'] = le.fit_transform(Probe_df['Attack'])
 
 
-    DT = DecisionTreeClassifier(criterion="entropy", max_depth = 17, random_state=7)
-    ET = ExtraTreesClassifier(n_estimators=20, random_state=7)
-    RF = RandomForestClassifier(n_estimators=100, max_depth = 17, random_state=7)
     train_Sdf, test_Sdf = train_test_split(Sdf, test_size=0.3, random_state=42)
     X_trainSdf, Y_trainSdf, X_testSdf, Y_testSdf = set(train_Sdf, test_Sdf, 'Label')
-    SEM = VotingClassifier(estimators=[('DT', DT), ('ET', ET), ('RF', RF)], voting='hard')
-    SEM.fit(X_trainSdf, Y_trainSdf)
-    y_pred = SEM.predict(X_testSdf)
-    pltreport(classification_report(Y_testSdf, y_pred, zero_division=0, output_dict=True), "Attack / Normal")
+    base_models = [
+        ('DT', DecisionTreeClassifier(criterion="entropy", max_depth=17, random_state=7)),
+        ('ET', ExtraTreesClassifier(n_estimators=20, random_state=7)),
+        ('RF', RandomForestClassifier(n_estimators=100, max_depth=17, random_state=7))
+    ]
+    final_model = RandomForestClassifier(n_estimators=100, max_depth=17, random_state=7)
+    ensemble = EnsembleMethod(base_models, method='voting')
+    ensemble.build_model()
+    ensemble.fit(X_trainSdf, Y_trainSdf)
+    y_pred = ensemble.predict(X_testSdf)
+    pltreport(classification_report(Y_testSdf, y_pred, zero_division=0, output_dict=True), "Attack / Normal (voting)")
+    print(classification_report(Y_testSdf, y_pred, zero_division=0))
+    ensemble = EnsembleMethod(base_models, method='stacking', final_model=final_model)
+    ensemble.build_model()
+    ensemble.fit(X_trainSdf, Y_trainSdf)
+    y_pred = ensemble.predict(X_testSdf)
+    pltreport(classification_report(Y_testSdf, y_pred, zero_division=0, output_dict=True), "Attack / Normal (stacking)")
     print(classification_report(Y_testSdf, y_pred, zero_division=0))
 
 
-    DT = OneVsRestClassifier(DecisionTreeClassifier(criterion="entropy", max_depth = 17, random_state=7))
-    ET = OneVsRestClassifier(ExtraTreesClassifier(n_estimators=20, random_state=7))
-    RF = OneVsRestClassifier(RandomForestClassifier(n_estimators=100, max_depth = 17, random_state=7))
     train_Cdf, test_Cdf = train_test_split(Cdf, test_size=0.3, random_state=42)
     X_trainCdf, Y_trainCdf, X_testCdf, Y_testCdf = set(train_Cdf, test_Cdf, 'Label')
-    CEM = VotingClassifier(estimators=[('DT', DT), ('ET', ET), ('RF', RF)], voting='hard')
-    CEM.fit(X_trainCdf, Y_trainCdf)
-    y_pred = CEM.predict(X_testCdf)
+    base_models = [
+        ('DT', OneVsRestClassifier(DecisionTreeClassifier(criterion="entropy", max_depth = 17, random_state=7))),
+        ('ET', OneVsRestClassifier(ExtraTreesClassifier(n_estimators=20, random_state=7))),
+        ('RF', OneVsRestClassifier(RandomForestClassifier(n_estimators=100, max_depth = 17, random_state=7)))
+    ]
+    ensemble = EnsembleMethod(base_models, method='voting')
+    ensemble.build_model()
+    ensemble.fit(X_trainCdf, Y_trainCdf)
+    y_pred = ensemble.predict(X_testCdf)
     pltreport(classification_report(Y_testCdf, y_pred, zero_division=0, output_dict=True), "Dos / Probe / U2r / R2l")
     print(classification_report(Y_testCdf, y_pred, zero_division=0))
 
 
-    DT = OneVsRestClassifier(DecisionTreeClassifier(criterion="entropy", max_depth = 17, random_state=7))
-    ET = OneVsRestClassifier(ExtraTreesClassifier(n_estimators=20, random_state=7))
-    RF = OneVsRestClassifier(RandomForestClassifier(n_estimators=100, max_depth = 17, random_state=7))
     train_DoS_df, test_DoS_df = train_test_split(DoS_df, test_size=0.3, random_state=42)
     X_trainDoS_df, Y_trainDoS_df, X_testDoS_df, Y_testDoS_df = set(train_DoS_df, test_DoS_df, 'Attack')
-    DEM = VotingClassifier(estimators=[('DT', DT), ('ET', ET), ('RF', RF)], voting='hard')
-    DEM.fit(X_trainDoS_df, Y_trainDoS_df)
-    y_pred = DEM.predict(X_testDoS_df)
+    base_models = [
+        ('DT', OneVsRestClassifier(DecisionTreeClassifier(criterion="entropy", max_depth = 17, random_state=7))),
+        ('ET', OneVsRestClassifier(ExtraTreesClassifier(n_estimators=20, random_state=7))),
+        ('RF', OneVsRestClassifier(RandomForestClassifier(n_estimators=100, max_depth = 17, random_state=7)))
+    ]
+    ensemble = EnsembleMethod(base_models, method='voting')
+    ensemble.build_model()
+    ensemble.fit(X_trainDoS_df, Y_trainDoS_df)
+    y_pred = ensemble.predict(X_testDoS_df)
     pltreport(classification_report(Y_testDoS_df, y_pred, zero_division=0, output_dict=True), "Dos")
     print(classification_report(Y_testDoS_df, y_pred, zero_division=0))
 
 
-    DT = OneVsRestClassifier(DecisionTreeClassifier(criterion="entropy", max_depth = 17, random_state=7))
-    ET = OneVsRestClassifier(ExtraTreesClassifier(n_estimators=20, random_state=7))
-    RF = OneVsRestClassifier(RandomForestClassifier(n_estimators=100, max_depth = 17, random_state=7))
     train_R2L_df, test_R2L_df = train_test_split(R2L_df, test_size=0.3, random_state=42)
     X_trainR2L_df, Y_trainR2L_df, X_testR2L_df, Y_testR2L_df = set(train_R2L_df, test_R2L_df, 'Attack')
-    REM = VotingClassifier(estimators=[('DT', DT), ('ET', ET), ('RF', RF)], voting='hard')
-    REM.fit(X_trainR2L_df, Y_trainR2L_df)
-    y_pred = REM.predict(X_testR2L_df)
+    base_models = [
+        ('DT', OneVsRestClassifier(DecisionTreeClassifier(criterion="entropy", max_depth = 17, random_state=7))),
+        ('ET', OneVsRestClassifier(ExtraTreesClassifier(n_estimators=20, random_state=7))),
+        ('RF', OneVsRestClassifier(RandomForestClassifier(n_estimators=100, max_depth = 17, random_state=7)))
+    ]
+    ensemble = EnsembleMethod(base_models, method='voting')
+    ensemble.build_model()
+    ensemble.fit(X_trainR2L_df, Y_trainR2L_df)
+    y_pred = ensemble.predict(X_testR2L_df)
     pltreport(classification_report(Y_testR2L_df, y_pred, zero_division=0, output_dict=True), "R2l")
     print(classification_report(Y_testR2L_df, y_pred, zero_division=0))
 
 
-    DT = DecisionTreeClassifier(criterion="entropy", max_depth = 17, random_state=7)
-    ET = ExtraTreesClassifier(n_estimators=20, random_state=7)
-    RF = RandomForestClassifier(n_estimators=100, max_depth = 17, random_state=7)
     train_U2R_df, test_U2R_df = train_test_split(U2R_df, test_size=0.3, random_state=42)
     test_U2R_df = pd.concat([test_U2R_df, pd.concat([test_U2R_df[test_U2R_df['Attack'] == 1]] * 1, ignore_index=True)], ignore_index=True)
     X_trainU2R_df, Y_trainU2R_df, X_testU2R_df, Y_testU2R_df = set(train_U2R_df, test_U2R_df, 'Attack')
-    UEM = VotingClassifier(estimators=[('DT', DT), ('ET', ET), ('RF', RF)], voting='hard')
-    UEM.fit(X_trainU2R_df, Y_trainU2R_df)
-    y_pred = UEM.predict(X_testU2R_df)
+    base_models = [
+        ('DT', DecisionTreeClassifier(criterion="entropy", max_depth = 17, random_state=7)),
+        ('ET', ExtraTreesClassifier(n_estimators=20, random_state=7)),
+        ('RF', RandomForestClassifier(n_estimators=100, max_depth = 17, random_state=7))
+    ]
+    ensemble = EnsembleMethod(base_models, method='voting')
+    ensemble.build_model()
+    ensemble.fit(X_trainU2R_df, Y_trainU2R_df)
+    y_pred = ensemble.predict(X_testU2R_df)
     pltreport(classification_report(Y_testU2R_df, y_pred, zero_division=0, output_dict=True), "U2r")
     print(classification_report(Y_testU2R_df, y_pred, zero_division=0))
 
 
-    estimators = [
+    train_Probe_df, test_Probe_df = train_test_split(Probe_df, test_size=0.3, random_state=42)
+    X_trainProbe_df, Y_trainProbe_df, X_testProbe_df, Y_testProbe_df = set(train_Probe_df, test_Probe_df, 'Attack')
+    base_models = [
         ('DT', DecisionTreeClassifier(criterion="entropy", max_depth = 17, random_state=7)),
         ('ET', ExtraTreesClassifier(n_estimators=20, random_state=7)),
         ('RF', RandomForestClassifier(n_estimators=100, max_depth = 17, random_state=7)),
     ]
-    final_estimator = RandomForestClassifier(n_estimators=100, random_state=7)
-    PEM = StackingClassifier(estimators=estimators, final_estimator=final_estimator)
-    train_Probe_df, test_Probe_df = train_test_split(Probe_df, test_size=0.3, random_state=42)
-    X_trainProbe_df, Y_trainProbe_df, X_testProbe_df, Y_testProbe_df = set(train_Probe_df, test_Probe_df, 'Attack')
-    PEM.fit(X_trainProbe_df, Y_trainProbe_df)
-    y_pred = PEM.predict(X_testProbe_df)
+    final_model = RandomForestClassifier(n_estimators=100, random_state=7)
+    ensemble = EnsembleMethod(base_models, method='stacking', final_model=final_model)
+    ensemble.build_model()
+    ensemble.fit(X_trainProbe_df, Y_trainProbe_df)
+    y_pred = ensemble.predict(X_testProbe_df)
     pltreport(classification_report(Y_testProbe_df, y_pred, zero_division=0, output_dict=True), "Probe")
     print(classification_report(Y_testProbe_df, y_pred, zero_division=0))
     
