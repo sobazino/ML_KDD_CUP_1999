@@ -288,7 +288,7 @@ class ML:
 def pltreport(report, t):
     report_df = pd.DataFrame(report).transpose()
     plt.figure(figsize=(12, 8))
-    sns.heatmap(report_df.iloc[:-1, :-1], annot=True, cmap="YlGnBu", fmt='.3f', cbar=True, 
+    sns.heatmap(report_df.iloc[:-1, :-1], annot=True, cmap="YlGnBu", fmt='.2f', cbar=True, 
                 linewidths=0.5, linecolor='black', annot_kws={'size': 12, 'weight': 'bold'}, 
                 cbar_kws={'shrink': 0.8}, vmin=0, vmax=1)
     plt.title(t, fontsize=16, weight='bold')
